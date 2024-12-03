@@ -11,11 +11,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: windows-latest
-            build-type: Release
-          - os: ubuntu-24.04
-            build-type: Release
+        os: [windows-latest, ubuntu-24.04]
+        build-type: [Release]
+        build-config-backends: [-DRAYX_ENABLE_CUDA=OFF, -DRAYX_REQUIRE_CUDA=ON]
 
     steps:
       - name: Checkout code
@@ -68,7 +66,7 @@ jobs:
 
       - name: Configure CMake (Windows)
         if: matrix.os == 'windows-latest'
-        run: cmake -B ${{github.workspace}}/build -DWERROR=YES -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DRAYX_REQUIRE_CUDA=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
+        run: cmake -B ${{github.workspace}}/build -DWERROR=YES -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} ${{ matrix.build-config-backends }} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
 
       # Linux-specific build steps
       - name: Install dependencies (Ubuntu)
@@ -86,7 +84,7 @@ jobs:
 
       - name: Configure CMake (Ubuntu)
         if: matrix.os == 'ubuntu-24.04'
-        run: cmake -B ${{github.workspace}}/build -DWERROR=YES -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DRAYX_REQUIRE_CUDA=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
+        run: cmake -B ${{github.workspace}}/build -DWERROR=YES -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} ${{ matrix.build-config-backends }} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
 
       # Build the project
       - name: Build
