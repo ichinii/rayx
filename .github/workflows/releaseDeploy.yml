@@ -13,7 +13,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-24.04]
         build-type: [Release]
-        build-config-backends: [-DRAYX_ENABLE_CUDA=OFF, -DRAYX_REQUIRE_CUDA=ON]
+        build-backend-cuda: [ON, OFF]
 
     steps:
       - name: Checkout code
@@ -66,7 +66,7 @@ jobs:
 
       - name: Configure CMake (Windows)
         if: matrix.os == 'windows-latest'
-        run: cmake -B ${{github.workspace}}/build -DWERROR=YES -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} ${{ matrix.build-config-backends }} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
+        run: cmake -B ${{github.workspace}}/build -DWERROR=YES -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DRAYX_ENABLE_CUDA=${{ matrix.build-backend-cuda }} -DRAYX_REQUIRE_CUDA=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
 
       # Linux-specific build steps
       - name: Install dependencies (Ubuntu)
@@ -84,7 +84,7 @@ jobs:
 
       - name: Configure CMake (Ubuntu)
         if: matrix.os == 'ubuntu-24.04'
-        run: cmake -B ${{github.workspace}}/build -DWERROR=YES -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} ${{ matrix.build-config-backends }} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
+        run: cmake -B ${{github.workspace}}/build -DWERROR=YES -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DRAYX_ENABLE_CUDA=${{ matrix.build-backend-cuda }} -DRAYX_REQUIRE_CUDA=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
 
       # Build the project
       - name: Build
@@ -98,7 +98,7 @@ jobs:
       - name: CPack (Windows - ZIP)
         if: matrix.os == 'windows-latest'
         working-directory: ${{github.workspace}}/build
-        run: cpack -G ZIP 
+        run: cpack -G ZIP
 
       - name: CPack (Windows - NSIS Installer)
         if: matrix.os == 'windows-latest'
@@ -121,12 +121,27 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: cpack -G TGZ
 
+      - name: Determine Artifact Suffix for Cuda
+        id: suffix
+        run: echo "suffix=openmp-${{ matrix.build-cuda == 'ON' && 'cuda' || 'nocuda' }}" >> $GITHUB_ENV
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Rename Files for Artifact
+        run: |
+          for file in build/*; do
+            ext="${file##*.}"
+            mv "$file" "build/RAYX-${{ env.version }}-${{ runner.os }}-${{ env.suffix }}.${ext}"
+          done
+
       # Upload artifacts (Windows)
       - name: Upload build artifacts (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: windows-artifacts
+          name: windows-artifacts-${{ env.suffix }}
           path: |
             ${{github.workspace}}/build/RAYX-*.zip
             ${{github.workspace}}/build/RAYX-*.exe
@@ -137,16 +152,12 @@ jobs:
         if: matrix.os == 'ubuntu-24.04'
         uses: actions/upload-artifact@v4
         with:
-          name: ubuntu-artifacts
+          name: ubuntu-artifacts-${{ env.suffix }}
           path: |
             ${{github.workspace}}/build/RAYX-*.deb
             ${{github.workspace}}/build/RAYX-*.rpm
             ${{github.workspace}}/build/RAYX-*.tar.gz
           if-no-files-found: error
-
-      - name: Extract version from tag
-        id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
       - name: Archive source code
         run: |
@@ -178,11 +189,16 @@ jobs:
         with:
           body_path: ${{github.workspace}}/CHANGELOG.md
           files: |
-            ${{github.workspace}}/artifacts/windows-artifacts/*.zip
-            ${{github.workspace}}/artifacts/windows-artifacts/*.exe
-            ${{github.workspace}}/artifacts/ubuntu-artifacts/*.deb
-            ${{github.workspace}}/artifacts/ubuntu-artifacts/*.rpm
-            ${{github.workspace}}/artifacts/ubuntu-artifacts/*.tar.gz
+            ${{github.workspace}}/artifacts/windows-artifacts-openmp-cuda/*.zip
+            ${{github.workspace}}/artifacts/windows-artifacts-openmp-cuda/*.exe
+            ${{github.workspace}}/artifacts/windows-artifacts-openmp-nocuda/*.zip
+            ${{github.workspace}}/artifacts/windows-artifacts-openmp-nocuda/*.exe
+            ${{github.workspace}}/artifacts/ubuntu-artifacts-openmp-cuda/*.deb
+            ${{github.workspace}}/artifacts/ubuntu-artifacts-openmp-cuda/*.rpm
+            ${{github.workspace}}/artifacts/ubuntu-artifacts-openmp-cuda/*.tar.gz
+            ${{github.workspace}}/artifacts/ubuntu-artifacts-openmp-nocuda/*.deb
+            ${{github.workspace}}/artifacts/ubuntu-artifacts-openmp-nocuda/*.rpm
+            ${{github.workspace}}/artifacts/ubuntu-artifacts-openmp-nocuda/*.tar.gz
             ${{github.workspace}}/artifacts/ubuntu-artifacts/RAYX-source-v${{env.version}}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
