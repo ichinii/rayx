@@ -1,4 +1,4 @@
-name: Create Release
+name: Create Debug
 
 on:
   push:
@@ -6,16 +6,16 @@ on:
       - 'v*' # Triggers on tag push matching v*
 
 jobs:
-  build-and-release:
-    name: Build and Release
+  build-and-debug:
+    name: Build and Debug
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: windows-latest
-            build-type: Release
+            build-type: Debug
           - os: ubuntu-24.04
-            build-type: Release
+            build-type: Debug
 
     steps:
       - name: Checkout code
@@ -93,7 +93,7 @@ jobs:
         run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build-type }}
 
       - name: Test
-        working-directory: ${{github.workspace}}/build/bin/release
+        working-directory: ${{github.workspace}}/build/bin/debug
         run: ./rayx-core-tst -x
 
       # Generate Windows artifacts (ZIP and NSIS installer)
@@ -155,9 +155,9 @@ jobs:
           git archive HEAD --format=zip --output=${{github.workspace}}/build/RAYX-source-v${{env.version}}.zip
 
 
-  release:
-    name: Create Release
-    needs: build-and-release
+  debug:
+    name: Create Debug
+    needs: build-and-debug
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -174,8 +174,8 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-      - name: Create and Upload Release
-        uses: softprops/action-gh-release@v1
+      - name: Create and Upload Debug
+        uses: softprops/action-gh-debug@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           body_path: ${{github.workspace}}/CHANGELOG.md
