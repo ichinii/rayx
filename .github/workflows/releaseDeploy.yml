@@ -13,7 +13,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            build-type: Release
+            build-type: Debug
           - os: ubuntu-24.04
             build-type: Release
 
