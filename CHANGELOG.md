@@ -60,3 +60,4 @@
 * Mac support including multithreaded tracing on CPU using OpenMP (x86 and arm)
 * Nix flake for reproducable dependency handling to make developing and building rayx more accessible
 * Multi layer foil
+* Runtime performance improvements
