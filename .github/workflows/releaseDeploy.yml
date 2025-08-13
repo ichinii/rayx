@@ -45,9 +45,6 @@ jobs:
       - name: Install NSIS
         run: choco install nsis -y
 
-      - name: Verify NSIS installation
-        run: makensis /VERSION
-
       - name: Setup CUDA Toolkit
         if: matrix.os == 'windows-2025'
         id: cuda-toolkit
