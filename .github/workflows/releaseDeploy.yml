@@ -42,7 +42,8 @@ jobs:
           echo "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin" >> $GITHUB_PATH
         shell: powershell
 
-      - name: Install NSIS
+      - name: Install NSIS (Windows)
+        if: matrix.os == 'windows-2025'
         run: choco install nsis -y
 
       - name: Setup CUDA Toolkit
